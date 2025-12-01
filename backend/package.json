@@ -5,6 +5,8 @@
     "main": "dist/index.js",
     "private": true,
     "dependencies": {
+        "@fastify/cors": "^11.1.0",
+        "@fastify/helmet": "^13.0.2",
         "@mongez/fs": "^3.0.5",
         "@mongez/node": "^1.0.1",
         "@types/bcryptjs": "^2.4.6",
@@ -28,7 +30,6 @@
         "typescript": "^5.3.3"
     },
     "scripts": {
-
         "start": "nodemon src/index.ts --app",
         "build": "tsc",
         "dev:ts": "ts-node-dev --respawn --transpile-only src/index.ts",
