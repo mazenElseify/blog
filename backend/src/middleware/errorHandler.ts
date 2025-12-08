@@ -1,4 +1,5 @@
-import  { Request, Response, NextFunction } from 'express';
+// import  { Request, Response, NextFunction } from 'express';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 
 export interface AppError extends Error {
     statusCode?: number;
@@ -7,15 +8,14 @@ export interface AppError extends Error {
 
 export const errorHandler = (
     error: AppError,
-    req: Request,
-    res: Response,
-    next: NextFunction
-): void => {
+    req: FastifyRequest,
+    reply: FastifyReply,
+) => {
     const { statusCode = 500, message } = error;
 
     console.error("Error: ", error);
 
-    res.status(statusCode).json({
+    return reply.status(statusCode).send({
         success: false,
         status: 'error',
         error: {
