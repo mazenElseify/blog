@@ -3,6 +3,8 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import dotenv from 'dotenv';
 import { connectDatabase } from './config/database';
+import authRoutes from './app/auth/routes/auth.routes';
+import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
 
@@ -36,6 +38,10 @@ const startServer = async () => {
             origin: allowedOrigins,
             credentials: true
         });
+        fastify.setErrorHandler(errorHandler);
+
+        await fastify.register(authRoutes, { prefix: '/api/auth' });
+        
         fastify.get('/heatlh', async (request, reply) => {
             return {
                 status: 'ok',
