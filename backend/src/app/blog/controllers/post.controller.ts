@@ -24,13 +24,14 @@ interface LikePostRequest {
 }
 
 export const createPost = async (
-    request: FastifyRequest<CreatePostRequest>,
+    request: FastifyRequest,
     reply: FastifyReply 
 ) => {
     try {
         const authorId = request.user._id.toString();
 
-        const post = await PostService.createPost(authorId, request.body);
+        const post = await PostService.createPost(authorId, request.body as CreatePostData);
+
 
         reply.status(201).send({
             success: true,
@@ -42,11 +43,11 @@ export const createPost = async (
 };
 
 export const getAllPosts = async (
-    request: FastifyRequest<GetPostsRequest>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     try {
-        const postsData = await PostService.getAllPosts(request.query);
+        const postsData = await PostService.getAllPosts(request.query as PostQuery);
         
         reply.status(200).send({
             success: true,
@@ -59,11 +60,12 @@ export const getAllPosts = async (
 };
 
 export const getPostById = async (
-    request: FastifyRequest<GetPostRequest>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     try {
-        const post = await PostService.getPostById(request.params.id);
+        const { id } = request.params as { id: string };
+        const post = await PostService.getPostById(id);
 
         reply.status(200).send({
             success: true,
@@ -77,12 +79,13 @@ export const getPostById = async (
 
 
 export const updatePost = async (
-    request: FastifyRequest<UpdatePostRequest>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     try {
         const authorId = request.user._id.toString();
-        const post = await PostService.updatePost(request.params.id, authorId, request.body);
+        const { id } = request.params as { id: string };
+        const post = await PostService.updatePost(id , authorId, request.body as UpdatePostData);
 
         reply.status(200).send({
             success: true,
@@ -95,12 +98,13 @@ export const updatePost = async (
 };
 
 export const deletePost = async (
-    request: FastifyRequest<GetPostRequest>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     try {
         const authorId = request.user._id.toString();
-        await PostService.deletePost(request.params.id, authorId);
+        const { id } = request.params as { id: string };
+        await PostService.deletePost(id, authorId);
 
         reply.status(200).send({
             success: true,
@@ -112,12 +116,13 @@ export const deletePost = async (
 };
 
 export const likePost = async (
-    request: FastifyRequest<LikePostRequest>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     try {
         const userId = request.user._id.toString();
-        const post = await PostService.likePost(request.params.id, userId);
+        const { id } = request.params as { id: string };
+        const post = await PostService.likePost(id, userId);
 
         reply.send({
             success: true,
@@ -130,12 +135,12 @@ export const likePost = async (
     };
 
 export const getUserPosts = async ( 
-    request: FastifyRequest<GetPostsRequest>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) => {
     try {
         const author = request.user._id.toString();
-        const post = await PostService.getPostsByAuthor(author, request.query);
+        const post = await PostService.getPostsByAuthor(author, request.query as PostQuery);
 
         reply.send({
             success: true,
