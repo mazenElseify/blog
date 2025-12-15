@@ -4,6 +4,7 @@ import helmet from '@fastify/helmet';
 import dotenv from 'dotenv';
 import { connectDatabase } from './config/database';
 import authRoutes from './app/auth/routes/auth.routes';
+import postRoutes from './app/blog/routes/post.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -41,8 +42,9 @@ const startServer = async () => {
         fastify.setErrorHandler(errorHandler);
 
         await fastify.register(authRoutes, { prefix: '/api/auth' });
-        
-        fastify.get('/heatlh', async (request, reply) => {
+        await fastify.register(postRoutes, { prefix: '/api/posts' });
+
+        fastify.get('/health', async (request, reply) => {
             return {
                 status: 'ok',
                 message: "Blog API is running",
