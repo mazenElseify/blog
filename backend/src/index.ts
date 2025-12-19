@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import dotenv from 'dotenv';
 import { connectDatabase } from './config/database';
+import { getCorsConfig, type CorsConfig } from './config/cors';
 import authRoutes from './app/auth/routes/auth.routes';
 import postRoutes from './app/blog/routes/post.routes';
 import { errorHandler } from './middleware/errorHandler';
@@ -13,36 +14,15 @@ const fastify = Fastify({
     logger: true
 });
 
-
-// Build allowed origins array with environment variables
-const buildAllowedOrigins = (): string[] => {
-    const baseOrigins = [
-        'http://localhost:3000',
-        'http://localhost:5173',
-        'http://localhost:5174',
-        'http://localhost:3001',
-        'http://localhost:8080'
-    ];
-    
-    const envOrigins: string[] = [
-        process.env.FRONTEND_URL,
-        process.env.CORS_ORIGIN
-    ].filter((origin): origin is string => Boolean(origin)); // Type-safe filter
-    
-    // Combine and remove duplicates
-    return [...new Set([...baseOrigins, ...envOrigins])];
-};
-
-const allowedOrigins = buildAllowedOrigins();
 const PORT = parseInt(process.env.PORT || '3000');
 
-const startServer = async () => {
+const startServer = async (corsConfig: CorsConfig) => {
     try {
         await fastify.register(helmet);
 
         await fastify.register(cors, {
-            origin: allowedOrigins,
-            credentials: true
+            origin: corsConfig.allowedOrigins,
+            credentials: corsConfig.credentials
         });
         fastify.setErrorHandler(errorHandler);
 
@@ -81,7 +61,8 @@ const startServer = async () => {
 };
 
 if (!process.env.VERCEL) {
-    startServer();
+    const corsConfig = getCorsConfig();
+    startServer(corsConfig);
 }
 
 export default fastify;
