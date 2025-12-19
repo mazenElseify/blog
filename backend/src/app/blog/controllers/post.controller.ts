@@ -1,27 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { PostService, CreatePostData, UpdatePostData, PostQuery } from '../services/post.service';
 
-interface CreatePostRequest {
-    Body: CreatePostData;
-    Params: { id: string };
-}
 
-interface UpdatePostRequest {
-    Body: UpdatePostData;
-    Params: { id: string };
-}
-
-interface GetPostsRequest {
-    Querystring: PostQuery;
-}
-
-interface GetPostRequest {
-    Params: { id: string };
-}
-
-interface LikePostRequest {
-    Params: { id: string };
-}
 
 export const createPost = async (
     request: FastifyRequest,
@@ -47,7 +27,10 @@ export const getAllPosts = async (
     reply: FastifyReply
 ) => {
     try {
-        const postsData = await PostService.getAllPosts(request.query as PostQuery);
+        const postsData = await PostService.getAllPosts({
+            ...(request.query as PostQuery),
+            published: true
+        });
         
         reply.status(200).send({
             success: true,

@@ -9,7 +9,7 @@ export interface IUser extends Document {
     avatar?: string;
     bio?: string;
     isActive: boolean;
-    role: 'user' | 'admin' | 'visitor';
+    role: 'user' | 'admin' | 'guest';
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;

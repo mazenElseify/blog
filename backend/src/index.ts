@@ -13,28 +13,29 @@ const fastify = Fastify({
     logger: true
 });
 
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:3001',
+    'http://localhost:8080',
+    process.env.FRONTEND_URL || '',
+    process.env.CORS_ORIGIN || ''
+
+];
 const PORT = parseInt(process.env.PORT || '3000');
+
+if (process.env.CORS_ORIGIN) {
+    allowedOrigins.push(process.env.CORS_ORIGIN);
+}
+if (process.env.FRONTEND_URL) {
+    allowedOrigins.push(process.env.FRONTEND_URL);
+};
 
 const startServer = async () => {
     try {
         await fastify.register(helmet);
 
-        const allowedOrigins = [
-            'http://localhost:3000',
-            'http://localhost:5173',
-            'http://localhost:5174',
-            'http://localhost:3001',
-            'http://localhost:8080',
-            process.env.FRONTEND_URL || '',
-            process.env.CORS_ORIGIN || ''
-
-        ];
-        if (process.env.CORS_ORIGIN) {
-            allowedOrigins.push(process.env.CORS_ORIGIN);
-        }
-        if (process.env.FRONTEND_URL) {
-            allowedOrigins.push(process.env.FRONTEND_URL);
-        };
         await fastify.register(cors, {
             origin: allowedOrigins,
             credentials: true
@@ -54,7 +55,7 @@ const startServer = async () => {
         });
         
         fastify.get('/' , async (request, reply) => {
-            return { 
+            reply.send({ 
                 message: "Welcome to Blog API",
                 version: "1.0.0",
                 endpoints: {
@@ -63,7 +64,7 @@ const startServer = async () => {
                     blogs: "/api/blogs",
                     auth: "/api/auth"
                 }
-            };
+            });
         });
         await connectDatabase();
         await fastify.listen({ port: PORT, host: '0.0.0.0' });
@@ -74,8 +75,8 @@ const startServer = async () => {
         process.exit(1);
     }
 };
-if (!process.env.VERCEL) {
 
+if (!process.env.VERCEL) {
     startServer();
 }
 
