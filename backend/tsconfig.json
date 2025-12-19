@@ -3,7 +3,7 @@
     "require": ["tsconfig-paths/register"]
   },
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2020",
     "lib": ["esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -17,11 +17,13 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "baseUrl": "./",
+    "outDir": "./dist",
+    "rootDir": "./src",
     "paths": {
       "app/*": ["src/*"]
     },
-    "noEmit": true
+    "noEmit": false
   },
   "include": ["src"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 }
