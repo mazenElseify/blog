@@ -110,9 +110,6 @@ const initializeFastify = async () => {
 if (!process.env.VERCEL) {
     // For local development: setup and start listening
     startServer();
-} else {
-    // For Vercel: Initialize immediately
-    initializeFastify().catch(console.error);
 }
 
 // Export for Vercel serverless functions  
