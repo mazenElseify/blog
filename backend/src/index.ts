@@ -54,7 +54,14 @@ const setupFastify = async () => {
         });
     });
 
-    await connectDatabase();
+    // Connect to database but don't let it block route registration
+    try {
+        await connectDatabase();
+    } catch (error) {
+        console.error('Database connection failed:', error);
+        // Don't throw - let the app continue without DB for now
+    }
+    
     return fastify;
 };
 
@@ -75,21 +82,27 @@ let isSetup = false;
 
 const initializeFastify = async () => {
     if (!isSetup) {
+        console.log('Setting up Fastify...');
         await setupFastify();
         isSetup = true;
+        console.log('Fastify setup complete');
     }
+    return fastify;
 };
 
 // Handle different environments
 if (!process.env.VERCEL) {
     // For local development: setup and start listening
     startServer();
+} else {
+    // For Vercel: Initialize immediately
+    initializeFastify().catch(console.error);
 }
 
 // Export for Vercel serverless functions  
 export default async (req: any, res: any) => {
-    await initializeFastify();
-    await fastify.ready();
-    fastify.server.emit('request', req, res);
+    const app = await initializeFastify();
+    await app.ready();
+    app.server.emit('request', req, res);
 };
 
