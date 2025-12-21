@@ -16,41 +16,51 @@ const fastify = Fastify({
 
 const PORT = parseInt(process.env.PORT || '3000');
 
-const startServer = async (corsConfig: CorsConfig) => {
+// Setup routes and middleware for both local and Vercel environments
+const setupFastify = async () => {
+    const corsConfig = getCorsConfig();
+    
+    await fastify.register(helmet);
+
+    await fastify.register(cors, {
+        origin: corsConfig.allowedOrigins,
+        credentials: corsConfig.credentials
+    });
+    
+    fastify.setErrorHandler(errorHandler);
+
+    await fastify.register(authRoutes, { prefix: '/api/auth' });
+    await fastify.register(postRoutes, { prefix: '/api/posts' });
+
+    fastify.get('/health', async (request, reply) => {
+        return {
+            status: 'ok',
+            message: "Blog API is running",
+            timestamp: new Date().toISOString(),
+            version: "1.0.0"
+        };
+    });
+    
+    fastify.get('/' , async (request, reply) => {
+        reply.send({ 
+            message: "Welcome to Blog API",
+            version: "1.0.0",
+            endpoints: {
+                users: "/api/users",
+                health: "/health",
+                blogs: "/api/posts",
+                auth: "/api/auth"
+            }
+        });
+    });
+
+    await connectDatabase();
+    return fastify;
+};
+
+const startServer = async () => {
     try {
-        await fastify.register(helmet);
-
-        await fastify.register(cors, {
-            origin: corsConfig.allowedOrigins,
-            credentials: corsConfig.credentials
-        });
-        fastify.setErrorHandler(errorHandler);
-
-        await fastify.register(authRoutes, { prefix: '/api/auth' });
-        await fastify.register(postRoutes, { prefix: '/api/posts' });
-
-        fastify.get('/health', async (request, reply) => {
-            return {
-                status: 'ok',
-                message: "Blog API is running",
-                timestamp: new Date().toISOString(),
-                version: "1.0.0"
-            };
-        });
-        
-        fastify.get('/' , async (request, reply) => {
-            reply.send({ 
-                message: "Welcome to Blog API",
-                version: "1.0.0",
-                endpoints: {
-                    users: "/api/users",
-                    health: "/api/health",
-                    blogs: "/api/blogs",
-                    auth: "/api/auth"
-                }
-            });
-        });
-        await connectDatabase();
+        await setupFastify();
         await fastify.listen({ port: PORT, host: '0.0.0.0' });
         console.log(`Server is running on port ${PORT}`);
         console.log("Ready");
@@ -60,10 +70,17 @@ const startServer = async (corsConfig: CorsConfig) => {
     }
 };
 
+// Initialize Fastify setup for both environments
+setupFastify().catch(console.error);
+
+// Only start listening if not in Vercel environment
 if (!process.env.VERCEL) {
-    const corsConfig = getCorsConfig();
-    startServer(corsConfig);
+    setupFastify();
+}else {
+    startServer();
+    console.log("Running in Vercel environment, skipping server start.");
 }
+
 
 export default fastify;
 
