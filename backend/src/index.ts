@@ -1,9 +1,7 @@
 import Fastify from 'fastify';
-import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import dotenv from 'dotenv';
 import { connectDatabase } from './config/database';
-import { getCorsConfig, type CorsConfig } from './config/cors';
 import authRoutes from './app/auth/routes/auth.routes';
 import postRoutes from './app/blog/routes/post.routes';
 import { errorHandler } from './middleware/errorHandler';
@@ -24,13 +22,19 @@ const setupFastify = async () => {
         await fastify.register(helmet);
         console.log('Helmet registered');
 
-        // Simple CORS configuration for Vercel
-        await fastify.register(cors, {
-            origin: true,
-            credentials: true,
-            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+        // Manual CORS headers instead of plugin
+        fastify.addHook('onRequest', async (request, reply) => {
+            reply.header('Access-Control-Allow-Origin', '*');
+            reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+            reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+            reply.header('Access-Control-Allow-Credentials', 'true');
         });
-        console.log('CORS registered');
+
+        // Handle OPTIONS requests
+        fastify.options('*', async (request, reply) => {
+            reply.send();
+        });
+        console.log('CORS headers configured');
         
         fastify.setErrorHandler(errorHandler);
         console.log('Error handler set');
