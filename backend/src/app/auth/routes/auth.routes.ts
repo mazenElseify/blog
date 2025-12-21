@@ -1,3 +1,4 @@
+import {uploadAvatar} from '../controllers/auth.controller';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { register, login, logout, me, updateProfile, getAllUsers, getUserById } from '../controllers/auth.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
@@ -77,6 +78,10 @@ export default async function authRoutes(fastify: FastifyInstance, option: Fasti
             }
         }
     }, login);
+
+    fastify.post('/upload-avatar', {
+        preHandler: [authenticateToken],
+    }, uploadAvatar);
 
     fastify.post('/logout', logout);
 

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = authRoutes;
 const auth_controller_1 = require("../controllers/auth.controller");
+const auth_controller_2 = require("../controllers/auth.controller");
 const auth_middleware_1 = require("../middleware/auth.middleware");
 async function authRoutes(fastify, option) {
     fastify.post('/register', {
@@ -34,7 +35,7 @@ async function authRoutes(fastify, option) {
                 }
             }
         }
-    }, auth_controller_1.register);
+    }, auth_controller_2.register);
     fastify.post('/login', {
         schema: {
             body: {
@@ -52,11 +53,14 @@ async function authRoutes(fastify, option) {
                 }
             }
         }
-    }, auth_controller_1.login);
-    fastify.post('/logout', auth_controller_1.logout);
+    }, auth_controller_2.login);
+    fastify.post('/upload-avatar', {
+        preHandler: [auth_middleware_1.authenticateToken],
+    }, auth_controller_1.uploadAvatar);
+    fastify.post('/logout', auth_controller_2.logout);
     fastify.get('/me', {
         preHandler: [auth_middleware_1.authenticateToken]
-    }, auth_controller_1.me);
+    }, auth_controller_2.me);
     // Update user profile
     fastify.put('/profile', {
         preHandler: [auth_middleware_1.authenticateToken],
@@ -80,11 +84,11 @@ async function authRoutes(fastify, option) {
                 }
             }
         }
-    }, auth_controller_1.updateProfile);
+    }, auth_controller_2.updateProfile);
     // Get all users
     fastify.get('/users', {
         preHandler: [auth_middleware_1.authenticateToken]
-    }, auth_controller_1.getAllUsers);
+    }, auth_controller_2.getAllUsers);
     // Get user by ID
     fastify.get('/users/:id', {
         preHandler: [auth_middleware_1.authenticateToken],
@@ -100,5 +104,5 @@ async function authRoutes(fastify, option) {
                 }
             }
         }
-    }, auth_controller_1.getUserById);
+    }, auth_controller_2.getUserById);
 }

@@ -1,7 +1,12 @@
 import type {FastifyRequest, FastifyReply} from 'fastify';
+import type {MultipartFile} from '@fastify/multipart';
+import { uploadImageToCloudinary, validateImageFile, deleteImageFromCloudinary } from '../../../utils/uploadHealper';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { UserModel } from '../models/user.model';
 import { createError } from '../../../middleware/errorHandler';
+
+
+
 
 interface RegisterBody {
     username: string;
@@ -197,6 +202,54 @@ export const getAllUsers = async (request: FastifyRequest, reply: FastifyReply) 
     } catch (error) {
         throw error;
     }
+};
+
+export const uploadAvatar = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const userId = request.user?._id;
+
+        if (!userId) {
+            throw createError("User not authenticated", 401);
+        }
+
+        const data = await request.file();
+        if (!data) {
+            throw createError("No file uploaded", 400);
+        }
+
+        validateImageFile(data);
+
+        const imageBuffer = await data.toBuffer();
+
+        const currentUser = await UserModel.findById(userId);
+
+        const oldAvatarPublicId = currentUser?.avatar ? 
+            currentUser.avatar.split('/').pop()?.split('.')[0] : null;
+
+        const uploadResult = await uploadImageToCloudinary(imageBuffer, 'avatar');
+
+        const updatedUser = await UserModel.findByIdAndUpdate(
+            userId,
+            { avatar: uploadResult.secure_url },
+            { new: true }
+        ).select('-password');
+
+        if (oldAvatarPublicId && currentUser?.avatar?.includes('cloudinary')) {
+            await deleteImageFromCloudinary(`blog/avatars/${oldAvatarPublicId}`);
+        }
+
+        reply.status(200).send({
+            success: true,
+            message: "Avatar uploaded successfully",
+            data: {
+                user: updatedUser,
+                imageUrl: uploadResult.secure_url
+            }
+        });
+    } catch (error) {
+        throw error;
+    }
+    
 };
 
 // Get user by ID

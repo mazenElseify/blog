@@ -3,7 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserById = exports.getAllUsers = exports.updateProfile = exports.me = exports.logout = exports.login = exports.register = void 0;
+exports.getUserById = exports.uploadAvatar = exports.getAllUsers = exports.updateProfile = exports.me = exports.logout = exports.login = exports.register = void 0;
+const uploadHealper_1 = require("../../../utils/uploadHealper");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const user_model_1 = require("../models/user.model");
 const errorHandler_1 = require("../../../middleware/errorHandler");
@@ -158,6 +159,40 @@ const getAllUsers = async (request, reply) => {
     }
 };
 exports.getAllUsers = getAllUsers;
+const uploadAvatar = async (request, reply) => {
+    try {
+        const userId = request.user?._id;
+        if (!userId) {
+            throw (0, errorHandler_1.createError)("User not authenticated", 401);
+        }
+        const data = await request.file();
+        if (!data) {
+            throw (0, errorHandler_1.createError)("No file uploaded", 400);
+        }
+        (0, uploadHealper_1.validateImageFile)(data);
+        const imageBuffer = await data.toBuffer();
+        const currentUser = await user_model_1.UserModel.findById(userId);
+        const oldAvatarPublicId = currentUser?.avatar ?
+            currentUser.avatar.split('/').pop()?.split('.')[0] : null;
+        const uploadResult = await (0, uploadHealper_1.uploadImageToCloudinary)(imageBuffer, 'avatar');
+        const updatedUser = await user_model_1.UserModel.findByIdAndUpdate(userId, { avatar: uploadResult.secure_url }, { new: true }).select('-password');
+        if (oldAvatarPublicId && currentUser?.avatar?.includes('cloudinary')) {
+            await (0, uploadHealper_1.deleteImageFromCloudinary)(`blog/avatars/${oldAvatarPublicId}`);
+        }
+        reply.status(200).send({
+            success: true,
+            message: "Avatar uploaded successfully",
+            data: {
+                user: updatedUser,
+                imageUrl: uploadResult.secure_url
+            }
+        });
+    }
+    catch (error) {
+        throw error;
+    }
+};
+exports.uploadAvatar = uploadAvatar;
 // Get user by ID
 const getUserById = async (request, reply) => {
     try {

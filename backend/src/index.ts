@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import helmet from '@fastify/helmet';
+import multipart from '@fastify/multipart';
 import dotenv from 'dotenv';
 import { connectDatabase } from './config/database';
 import authRoutes from './app/auth/routes/auth.routes';
@@ -21,6 +22,9 @@ const setupFastify = async () => {
         
         await fastify.register(helmet);
         console.log('Helmet registered');
+
+        await fastify.register(multipart);
+        console.log('Multipart registered');
 
         // Manual CORS headers instead of plugin
         fastify.addHook('onRequest', async (request, reply) => {

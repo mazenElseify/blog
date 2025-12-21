@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fastify_1 = __importDefault(require("fastify"));
 const helmet_1 = __importDefault(require("@fastify/helmet"));
+const multipart_1 = __importDefault(require("@fastify/multipart"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const database_1 = require("./config/database");
 const auth_routes_1 = __importDefault(require("./app/auth/routes/auth.routes"));
@@ -21,6 +22,8 @@ const setupFastify = async () => {
         console.log('Starting Fastify setup...');
         await fastify.register(helmet_1.default);
         console.log('Helmet registered');
+        await fastify.register(multipart_1.default);
+        console.log('Multipart registered');
         // Manual CORS headers instead of plugin
         fastify.addHook('onRequest', async (request, reply) => {
             reply.header('Access-Control-Allow-Origin', '*');
