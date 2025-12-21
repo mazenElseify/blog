@@ -20,14 +20,15 @@ const PORT = parseInt(process.env.PORT || '3000');
 const setupFastify = async () => {
     try {
         console.log('Starting Fastify setup...');
-        const corsConfig = getCorsConfig();
         
         await fastify.register(helmet);
         console.log('Helmet registered');
 
+        // Simple CORS configuration for Vercel
         await fastify.register(cors, {
-            origin: corsConfig.allowedOrigins,
-            credentials: corsConfig.credentials
+            origin: true,
+            credentials: true,
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
         });
         console.log('CORS registered');
         
