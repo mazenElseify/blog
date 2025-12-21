@@ -71,16 +71,25 @@ const startServer = async () => {
 };
 
 // Handle different environments
-if (process.env.VERCEL) {
-    // For Vercel: just setup routes, don't start listening
-    setupFastify().catch(console.error);
-} else {
+let initialized = false;
+
+const initializeForVercel = async () => {
+    if (!initialized) {
+        await setupFastify();
+        initialized = true;
+    }
+};
+
+if (!process.env.VERCEL) {
     // For local development: setup and start listening
     startServer();
 }
 
 // Export for Vercel serverless functions
 export default async (req: any, res: any) => {
+    if (process.env.VERCEL) {
+        await initializeForVercel();
+    }
     await fastify.ready();
     fastify.server.emit('request', req, res);
 };
