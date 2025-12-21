@@ -18,51 +18,67 @@ const PORT = parseInt(process.env.PORT || '3000');
 
 // Setup routes and middleware for both local and Vercel environments
 const setupFastify = async () => {
-    const corsConfig = getCorsConfig();
-    
-    await fastify.register(helmet);
-
-    await fastify.register(cors, {
-        origin: corsConfig.allowedOrigins,
-        credentials: corsConfig.credentials
-    });
-    
-    fastify.setErrorHandler(errorHandler);
-
-    await fastify.register(authRoutes, { prefix: '/api/auth' });
-    await fastify.register(postRoutes, { prefix: '/api/posts' });
-
-    fastify.get('/health', async (request, reply) => {
-        return {
-            status: 'ok',
-            message: "Blog API is running",
-            timestamp: new Date().toISOString(),
-            version: "1.0.0"
-        };
-    });
-    
-    fastify.get('/' , async (request, reply) => {
-        reply.send({ 
-            message: "Welcome to Blog API",
-            version: "1.0.0",
-            endpoints: {
-                users: "/api/users",
-                health: "/health",
-                blogs: "/api/posts",
-                auth: "/api/auth"
-            }
-        });
-    });
-
-    // Connect to database but don't let it block route registration
     try {
-        await connectDatabase();
+        console.log('Starting Fastify setup...');
+        const corsConfig = getCorsConfig();
+        
+        await fastify.register(helmet);
+        console.log('Helmet registered');
+
+        await fastify.register(cors, {
+            origin: corsConfig.allowedOrigins,
+            credentials: corsConfig.credentials
+        });
+        console.log('CORS registered');
+        
+        fastify.setErrorHandler(errorHandler);
+        console.log('Error handler set');
+
+        await fastify.register(authRoutes, { prefix: '/api/auth' });
+        console.log('Auth routes registered');
+        
+        await fastify.register(postRoutes, { prefix: '/api/posts' });
+        console.log('Post routes registered');
+
+        fastify.get('/health', async (request, reply) => {
+            return {
+                status: 'ok',
+                message: "Blog API is running",
+                timestamp: new Date().toISOString(),
+                version: "1.0.0"
+            };
+        });
+        console.log('Health route registered');
+        
+        fastify.get('/' , async (request, reply) => {
+            reply.send({ 
+                message: "Welcome to Blog API",
+                version: "1.0.0",
+                endpoints: {
+                    users: "/api/users",
+                    health: "/health",
+                    blogs: "/api/posts",
+                    auth: "/api/auth"
+                }
+            });
+        });
+        console.log('Root route registered');
+
+        // Connect to database but don't let it block route registration
+        try {
+            await connectDatabase();
+            console.log('Database connected');
+        } catch (error) {
+            console.error('Database connection failed:', error);
+            // Don't throw - let the app continue without DB for now
+        }
+        
+        console.log('Fastify setup complete');
+        return fastify;
     } catch (error) {
-        console.error('Database connection failed:', error);
-        // Don't throw - let the app continue without DB for now
+        console.error('Error during Fastify setup:', error);
+        throw error;
     }
-    
-    return fastify;
 };
 
 const startServer = async () => {
@@ -101,8 +117,21 @@ if (!process.env.VERCEL) {
 
 // Export for Vercel serverless functions  
 export default async (req: any, res: any) => {
-    const app = await initializeFastify();
-    await app.ready();
-    app.server.emit('request', req, res);
+    try {
+        console.log('Handling request:', req.method, req.url);
+        const app = await initializeFastify();
+        await app.ready();
+        console.log('App ready, emitting request');
+        app.server.emit('request', req, res);
+    } catch (error) {
+        console.error('Error in serverless function:', error);
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ 
+            error: 'Internal Server Error',
+            message: error instanceof Error ? error.message : String(error),
+            timestamp: new Date().toISOString()
+        }));
+    }
 };
 
