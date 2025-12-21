@@ -3,9 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logout = exports.login = exports.register = void 0;
+exports.getUserById = exports.getAllUsers = exports.updateProfile = exports.me = exports.logout = exports.login = exports.register = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const user_model_1 = require("../../user/database/models/user.model");
+const user_model_1 = require("../models/user.model");
 const errorHandler_1 = require("../../../middleware/errorHandler");
 const generateToken = (userId) => {
     const jwtSecret = process.env.JWT_SECRET;
@@ -89,3 +89,93 @@ const logout = async (request, reply) => {
     });
 };
 exports.logout = logout;
+const me = async (request, reply) => {
+    try {
+        const user = request.user;
+        if (!user) {
+            throw (0, errorHandler_1.createError)("User not found", 404);
+        }
+        reply.status(200).send({
+            success: true,
+            message: "User profile retrieved successfully",
+            data: {
+                user
+            }
+        });
+    }
+    catch (error) {
+        throw error;
+    }
+};
+exports.me = me;
+// Update user profile
+const updateProfile = async (request, reply) => {
+    try {
+        const userId = request.user?._id;
+        const { username, bio, avatar } = request.body;
+        if (!userId) {
+            throw (0, errorHandler_1.createError)("User not authenticated", 401);
+        }
+        const updateData = {};
+        if (username)
+            updateData.username = username;
+        if (bio !== undefined)
+            updateData.bio = bio;
+        if (avatar !== undefined)
+            updateData.avatar = avatar;
+        const updatedUser = await user_model_1.UserModel.findByIdAndUpdate(userId, updateData, { new: true, runValidators: true }).select('-password');
+        if (!updatedUser) {
+            throw (0, errorHandler_1.createError)("User not found", 404);
+        }
+        reply.status(200).send({
+            success: true,
+            message: "Profile updated successfully",
+            data: {
+                user: updatedUser
+            }
+        });
+    }
+    catch (error) {
+        throw error;
+    }
+};
+exports.updateProfile = updateProfile;
+// Get all users (admin only)
+const getAllUsers = async (request, reply) => {
+    try {
+        const users = await user_model_1.UserModel.find({ isActive: true }).select('-password');
+        reply.status(200).send({
+            success: true,
+            message: "Users retrieved successfully",
+            data: {
+                users,
+                count: users.length
+            }
+        });
+    }
+    catch (error) {
+        throw error;
+    }
+};
+exports.getAllUsers = getAllUsers;
+// Get user by ID
+const getUserById = async (request, reply) => {
+    try {
+        const { id } = request.params;
+        const user = await user_model_1.UserModel.findById(id).select('-password');
+        if (!user) {
+            throw (0, errorHandler_1.createError)("User not found", 404);
+        }
+        reply.status(200).send({
+            success: true,
+            message: "User retrieved successfully",
+            data: {
+                user
+            }
+        });
+    }
+    catch (error) {
+        throw error;
+    }
+};
+exports.getUserById = getUserById;

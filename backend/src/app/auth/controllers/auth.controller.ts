@@ -1,6 +1,6 @@
 import type {FastifyRequest, FastifyReply} from 'fastify';
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { UserModel } from '../../user/database/models/user.model';
+import { UserModel } from '../models/user.model';
 import { createError } from '../../../middleware/errorHandler';
 
 interface RegisterBody {
@@ -11,9 +11,19 @@ interface RegisterBody {
     avatar?: string;
 }
 
+interface UpdateProfileBody {
+    username?: string;
+    bio?: string;
+    avatar?: string;
+}
+
 interface LoginBody {
     email: string;
     password: string;
+}
+
+interface UserParams {
+    id: string;
 }
 
 const generateToken = (userId: string): string => {
@@ -112,4 +122,102 @@ export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
         success: true,
         message: "Loged out successfully."
     });
+};
+
+export const me = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const user = request.user;
+        
+        if (!user) {
+            throw createError("User not found", 404);
+        }
+
+        reply.status(200).send({
+            success: true,
+            message: "User profile retrieved successfully",
+            data: {
+                user
+            }
+        });
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Update user profile
+export const updateProfile = async (request: FastifyRequest<{ Body: UpdateProfileBody }>, reply: FastifyReply) => {
+    try {
+        const userId = request.user?._id;
+        const { username, bio, avatar } = request.body;
+
+        if (!userId) {
+            throw createError("User not authenticated", 401);
+        }
+
+        const updateData: any = {};
+        if (username) updateData.username = username;
+        if (bio !== undefined) updateData.bio = bio;
+        if (avatar !== undefined) updateData.avatar = avatar;
+
+        const updatedUser = await UserModel.findByIdAndUpdate(
+            userId,
+            updateData,
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!updatedUser) {
+            throw createError("User not found", 404);
+        }
+
+        reply.status(200).send({
+            success: true,
+            message: "Profile updated successfully",
+            data: {
+                user: updatedUser
+            }
+        });
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Get all users (admin only)
+export const getAllUsers = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const users = await UserModel.find({ isActive: true }).select('-password');
+
+        reply.status(200).send({
+            success: true,
+            message: "Users retrieved successfully",
+            data: {
+                users,
+                count: users.length
+            }
+        });
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Get user by ID
+export const getUserById = async (request: FastifyRequest<{ Params: UserParams }>, reply: FastifyReply) => {
+    try {
+        const { id } = request.params;
+
+        const user = await UserModel.findById(id).select('-password');
+
+        if (!user) {
+            throw createError("User not found", 404);
+        }
+
+        reply.status(200).send({
+            success: true,
+            message: "User retrieved successfully",
+            data: {
+                user
+            }
+        });
+    } catch (error) {
+        throw error;
+    }
 };

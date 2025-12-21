@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import jwt from 'jsonwebtoken';
-import { UserModel } from '../../user/database/models/user.model';
+import { UserModel } from '../models/user.model';
 import { createError } from '../../../middleware/errorHandler';
 
 interface JwtPayload {
