@@ -29,11 +29,6 @@ const setupFastify = async () => {
             reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
             reply.header('Access-Control-Allow-Credentials', 'true');
         });
-
-        // Handle OPTIONS requests
-        fastify.options('*', async (request, reply) => {
-            reply.send();
-        });
         console.log('CORS headers configured');
         
         fastify.setErrorHandler(errorHandler);
