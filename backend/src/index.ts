@@ -1,11 +1,13 @@
 import Fastify from 'fastify';
 import helmet from '@fastify/helmet';
+import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import dotenv from 'dotenv';
 import { connectDatabase } from './config/database';
 import authRoutes from './app/auth/routes/auth.routes';
 import postRoutes from './app/blog/routes/post.routes';
 import { errorHandler } from './middleware/errorHandler';
+import { getCorsConfig } from './config/cors';
 
 dotenv.config();
 
@@ -26,15 +28,19 @@ const setupFastify = async () => {
         await fastify.register(multipart);
         console.log('Multipart registered');
 
-        // Manual CORS headers instead of plugin
-        fastify.addHook('onRequest', async (request, reply) => {
-            reply.header('Access-Control-Allow-Origin', '*');
-            reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-            reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-            reply.header('Access-Control-Allow-Credentials', 'true');
-        });
-        console.log('CORS headers configured');
-        
+        const corsConfig = getCorsConfig();
+        await fastify.register(cors,{
+            origin: corsConfig.allowedOrigins,
+            credentials: corsConfig.credentials,
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization']
+        }
+        );
+        console.log('CORS registered with config:', corsConfig);
+
+        await fastify.register(multipart);
+        console.log('Multipart registered');
+
         fastify.setErrorHandler(errorHandler);
         console.log('Error handler set');
 

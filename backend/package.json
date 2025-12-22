@@ -5,7 +5,7 @@
     "main": "dist/index.js",
     "private": true,
     "dependencies": {
-        "@fastify/cors": "^11.1.0",
+        "@fastify/cors": "^11.2.0",
         "@fastify/helmet": "^13.0.2",
         "@fastify/multipart": "^9.3.0",
         "@mongez/fs": "^3.0.5",
