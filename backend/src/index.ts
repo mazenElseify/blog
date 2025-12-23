@@ -25,21 +25,21 @@ const setupFastify = async () => {
         await fastify.register(helmet);
         console.log('Helmet registered');
 
-        await fastify.register(multipart);
+        await fastify.register(multipart, {
+            limits: {
+                fileSize: 5 * 1024 * 1024, // 5MB
+            }
+        });
         console.log('Multipart registered');
 
         const corsConfig = getCorsConfig();
-        await fastify.register(cors,{
+        await fastify.register(cors, {
             origin: corsConfig.allowedOrigins,
             credentials: corsConfig.credentials,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
             allowedHeaders: ['Content-Type', 'Authorization']
-        }
-        );
+        });
         console.log('CORS registered with config:', corsConfig);
-
-        await fastify.register(multipart);
-        console.log('Multipart registered');
 
         fastify.setErrorHandler(errorHandler);
         console.log('Error handler set');

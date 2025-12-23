@@ -5,12 +5,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fastify_1 = __importDefault(require("fastify"));
 const helmet_1 = __importDefault(require("@fastify/helmet"));
+const cors_1 = __importDefault(require("@fastify/cors"));
 const multipart_1 = __importDefault(require("@fastify/multipart"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const database_1 = require("./config/database");
 const auth_routes_1 = __importDefault(require("./app/auth/routes/auth.routes"));
 const post_routes_1 = __importDefault(require("./app/blog/routes/post.routes"));
 const errorHandler_1 = require("./middleware/errorHandler");
+const cors_2 = require("./config/cors");
 dotenv_1.default.config();
 const fastify = (0, fastify_1.default)({
     logger: true
@@ -22,16 +24,20 @@ const setupFastify = async () => {
         console.log('Starting Fastify setup...');
         await fastify.register(helmet_1.default);
         console.log('Helmet registered');
-        await fastify.register(multipart_1.default);
-        console.log('Multipart registered');
-        // Manual CORS headers instead of plugin
-        fastify.addHook('onRequest', async (request, reply) => {
-            reply.header('Access-Control-Allow-Origin', '*');
-            reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-            reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-            reply.header('Access-Control-Allow-Credentials', 'true');
+        await fastify.register(multipart_1.default, {
+            limits: {
+                fileSize: 5 * 1024 * 1024, // 5MB
+            }
         });
-        console.log('CORS headers configured');
+        console.log('Multipart registered');
+        const corsConfig = (0, cors_2.getCorsConfig)();
+        await fastify.register(cors_1.default, {
+            origin: corsConfig.allowedOrigins,
+            credentials: corsConfig.credentials,
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization']
+        });
+        console.log('CORS registered with config:', corsConfig);
         fastify.setErrorHandler(errorHandler_1.errorHandler);
         console.log('Error handler set');
         await fastify.register(auth_routes_1.default, { prefix: '/api/auth' });
