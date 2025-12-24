@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { connectDatabase } from './config/database';
 import authRoutes from './app/auth/routes/auth.routes';
 import postRoutes from './app/blog/routes/post.routes';
+import commentRoutes from './app/blog/routes/comment.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { getCorsConfig } from './config/cors';
 
@@ -49,6 +50,8 @@ const setupFastify = async () => {
         
         await fastify.register(postRoutes, { prefix: '/api/posts' });
         console.log('Post routes registered');
+
+        await fastify.register(commentRoutes, { prefix: '/api/comments' });
 
         fastify.get('/health', async (request, reply) => {
             return {
