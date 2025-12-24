@@ -1,7 +1,36 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { PostService, CreatePostData, UpdatePostData, PostQuery } from '../services/post.service';
+import { uploadImageToCloudinary, validateImageFile, deleteImageFromCloudinary } from '../../../utils/uploadHealper';
+import { createError } from '../../../middleware/errorHandler';
 
+async function parsePostData( request: FastifyRequest): Promise<{
+    postData: CreatePostData;
+    imageBuffer?: Buffer;
+}> {
+    if (request.isMultipart()) {
+        const parts = request.parts();
+        const fields: any = {};
+        let imageBuffer: Buffer | undefined;
 
+        for await (const part of parts) {
+            if (part.type === 'file' && part.fieldname === 'coverImage') {
+                imageBuffer = await part.toBuffer();
+            } else if (part.type === 'field' ) {
+                const fieldValue = part.value as string;
+                if (part.fieldname === 'tags') {
+                    fields[part.fieldname] = JSON.parse(fieldValue);
+                } else if (part.fieldname === 'published') {
+                    fields[part.fieldname] = fieldValue === 'true';
+                } else {
+                    fields[part.fieldname] = fieldValue;
+                }
+            }
+        }
+        return { postData: fields as CreatePostData, imageBuffer };
+    } else {
+        return { postData: request.body as CreatePostData };
+    }
+}
 
 export const createPost = async (
     request: FastifyRequest,
@@ -10,12 +39,15 @@ export const createPost = async (
     try {
         const authorId = request.user._id.toString();
 
-        const post = await PostService.createPost(authorId, request.body as CreatePostData);
+        const { postData, imageBuffer } = await parsePostData(request);
+
+        const post = await PostService.createPost(authorId, postData, imageBuffer);
 
 
         reply.status(201).send({
             success: true,
-            data: post
+            data: post,
+            message: "Post created successfully"
         });
     } catch (error) {
         throw error;
@@ -68,7 +100,8 @@ export const updatePost = async (
     try {
         const authorId = request.user._id.toString();
         const { id } = request.params as { id: string };
-        const post = await PostService.updatePost(id , authorId, request.body as UpdatePostData);
+        const {postData, imageBuffer } = await parsePostData(request);
+        const post = await PostService.updatePost(id , authorId, postData, imageBuffer);
 
         reply.status(200).send({
             success: true,

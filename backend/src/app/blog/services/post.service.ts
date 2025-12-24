@@ -1,6 +1,7 @@
 import { Post, IPost } from '../database/models/post.model';
 import { createError } from '../../../middleware/errorHandler';
 import mongoose from 'mongoose';
+import { uploadImageToCloudinary, validateImageFile, deleteImageFromCloudinary} from '../../../utils/uploadHealper';
 
 export interface CreatePostData {
     title: string;
@@ -35,11 +36,22 @@ export interface PostQuery {
 
 export class PostService {
 
-    public static async createPost( authorId: string, postData: CreatePostData ): Promise<IPost> {
+    public static async createPost( 
+        authorId: string,
+        postData: CreatePostData,
+        coverImageFile?: Buffer 
+    ): Promise<IPost> {
         try{
+            let coverImageUrl: string | undefined;
+            if (coverImageFile) {
+                validateImageFile( { buffer: coverImageFile } as any);
+                const uploadResult = await uploadImageToCloudinary(coverImageFile, 'coverImage');
+                coverImageUrl = uploadResult.secure_url;
+            }
             const post = new Post({
                 ...postData,
                 author: authorId,
+                coverImage: coverImageUrl,
                 published: postData.published || false,
             });
 
@@ -140,38 +152,64 @@ export class PostService {
         return post;
     }
 
-    public static async updatePost(postId: string, authorId: string, updateData: UpdatePostData): Promise<IPost> {
-        if (!mongoose.Types.ObjectId.isValid(postId)) {
-            throw createError('Invalid Post ID', 400);
-        }
+    public static async updatePost(
+        postId: string,
+        authorId: string,
+         updateData: UpdatePostData,
+          newCoverImageBuffer?: Buffer
+        ): Promise<IPost> {
+            try {
+                if (!mongoose.Types.ObjectId.isValid(postId)) {
+                    throw createError('Invalid Post ID', 400);
+                }
+                
+                const post = await Post.findById(postId);
+                if (!post) {
+                    throw createError('Post not found', 404);
+                }
         
-        const post = await Post.findById(postId);
-        if (!post) {
-            throw createError('Post not found', 404);
-        }
+                if (post.author.toString() !== authorId) {
+                    throw createError('You can only update your own posts', 403);
+                }
+                let newCoverImageUrl: string | undefined;
+                if (newCoverImageBuffer) {
+                    validateImageFile({ buffer: newCoverImageBuffer } as any);
+                    const uploadResult = await uploadImageToCloudinary(newCoverImageBuffer, 'coverImage');
+                    newCoverImageUrl = uploadResult.secure_url;
 
-        if (post.author.toString() !== authorId) {
-            throw createError('You can only update your own posts', 403);
-        }
+                    if (post.coverImage && post.coverImage.includes('cloudinary')) {
+                        const oldPublicId = post.coverImage.split('/').pop()?.split('.')[0];
+                        if (oldPublicId) {
+                            await deleteImageFromCloudinary(`blog/covers/${oldPublicId}`);
+                        }
+                    }
+                }
+                const finalUpdateData = { ...updateData };
+                if (newCoverImageUrl) {
+                    finalUpdateData.coverImage = newCoverImageUrl;
+                }
 
-        if (updateData.published && !post.published) {
-            (updateData as any).publishedAt = new Date();
-        }
-
-        const updatedPost = await Post.findByIdAndUpdate(
-            postId,
-            { ...updateData },
-            {
-                new: true,
-                runvalidators: true
+                if (updateData.published && !post.published) {
+                    (finalUpdateData as any).publishedAt = new Date();
             }
-        ).populate('author', 'username avatar');
 
-        if (!updatedPost) {
-            throw createError('Error updating post', 400);
+            const updatedPost = await Post.findByIdAndUpdate(
+                postId,
+                finalUpdateData,
+                {
+                    new: true,
+                    runValidators: true
+                }
+            ).populate('author', 'username avatar');
+
+            if (!updatedPost) {
+                throw createError('Error updating post', 400);
+            }
+
+            return updatedPost;
+        } catch (error: any) {
+            throw createError(error.message || 'Error updating post', 400);
         }
-
-        return updatedPost;
     }
 
     public static async deletePost(postId: string, authorId: string): Promise<void> {
